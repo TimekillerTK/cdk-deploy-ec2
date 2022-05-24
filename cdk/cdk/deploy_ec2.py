@@ -18,6 +18,21 @@ class DeployEc2Stack(Stack):
         self.ami_name      = os.getenv("AMI_NAME")
         self.vpc_name      = os.getenv("VPC_ID")
         self.key_name      = os.getenv("KEY_NAME")
+        self.file_path     = os.getenv("USER_DATA")
+
+
+        print(f'Importing User Data...')
+        with open(self.file_path, "r") as file:
+            shell_script = file.read()
+            
+        print(f'USER DATA:\n{shell_script}\n')
+
+        user_data = aws_ec2.UserData.for_linux()
+        user_data.add_commands(shell_script)
+        print(user_data)
+        if not user_data:
+            print('Failed setting user data...')
+            sys.exit(1)
 
         print(f'Checking name of key pair...')
         if not self.key_name:
@@ -26,34 +41,34 @@ class DeployEc2Stack(Stack):
 
         print(f'Looking up local public IP...')
         local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
-        print(f'Local IP: {local_ip}')
+        print(f'--> Local IP: {local_ip}')
         if not local_ip:
             print(f'Failed getting local public IP ')
-            return
+            sys.exit(1)
 
         print (f'Looking up AMI: {self.ami_name}')
         ami_image = aws_ec2.MachineImage().lookup(name=self.ami_name)
         if not ami_image:
             print ('Failed finding AMI image')
-            return
+            sys.exit(1)
 
         print (f'Looking up instance type: {self.instance_type}')
         instance_type = aws_ec2.InstanceType(self.instance_type)
         if not instance_type:
             print ('Failed finding instance')
-            return
+            sys.exit(1)
 
         print (f'Using VPC: {self.vpc_name}')
         vpc = aws_ec2.Vpc.from_lookup(self, 'vpc', vpc_id=self.vpc_name)
         if not vpc:
             print ('Failed finding VPC')
-            return
+            sys.exit(1)
 
         print ('Creating security group')
         sec_grp= aws_ec2.SecurityGroup(self, 'ec2-sec-grp', vpc=vpc, allow_all_outbound=True)
         if not sec_grp:
             print ('Failed finding security group')
-            return
+            sys.exit(1)
 
         print ('Creating inbound firewall rule')
         sec_grp.add_ingress_rule(
@@ -63,7 +78,7 @@ class DeployEc2Stack(Stack):
 
         if not sec_grp:
             print ('Failed creating security group')
-            return
+            sys.exit(1)
 
         print (f'Creating EC2 Instance: {self.instance_name} using {self.instance_type} with ami: {self.ami_name}')
         ec2_inst = aws_ec2.Instance(
@@ -73,10 +88,11 @@ class DeployEc2Stack(Stack):
             machine_image=ami_image,
             vpc=vpc,
             security_group=sec_grp,
-            key_name=self.key_name)
+            key_name=self.key_name,
+            user_data=user_data) 
 
         if not ec2_inst:
             print ('Failed creating ec2 instance')
-            return
+            sys.exit(1)
 
         CfnOutput(self, "MyInstanceIp", value=ec2_inst.instance_public_ip)
