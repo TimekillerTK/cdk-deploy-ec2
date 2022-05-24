@@ -10,6 +10,7 @@ export VPC_ID="vpc-xxxxxxxxxxxx" # VPC
 export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" # Amazon Linux 2 (example)
 export KEY_NAME="whatever" # Keypair name which you'll use to connect to the EC2 instance
 export USER_DATA="userdata" # path to userdata
+export BUCKET_NAME="xxxxyyyxxx" # name of S3 bucket EC2 instance will have access to
 ```
 
 By default it will open up a ssh firewall rule to your local public IP Address.

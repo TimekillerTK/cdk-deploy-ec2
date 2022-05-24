@@ -4,7 +4,8 @@ import requests
 from aws_cdk import (
     CfnOutput,
     Stack,
-    aws_ec2
+    aws_ec2,
+    aws_iam
 )
 from constructs import Construct
 
@@ -19,6 +20,7 @@ class DeployEc2Stack(Stack):
         self.vpc_name      = os.getenv("VPC_ID")
         self.key_name      = os.getenv("KEY_NAME")
         self.file_path     = os.getenv("USER_DATA")
+        self.bucket_name   = os.getenv("BUCKET_NAME")
 
 
         print(f'Importing User Data...')
@@ -45,6 +47,22 @@ class DeployEc2Stack(Stack):
         if not local_ip:
             print(f'Failed getting local public IP ')
             sys.exit(1)
+
+        print(f'Creating Inline Policy for access to S3 Bucket')
+        inline_policy = aws_iam.PolicyDocument(
+            statements=[aws_iam.PolicyStatement(
+                actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
+                resources=[f"arn:aws:s3:::{self.bucket_name}"]
+            )])
+        if not inline_policy:
+            print('Failed setting inline policy')
+            sys.exit(1)
+
+        print(f'Setting up Instance Role...')
+        role = aws_iam.Role(
+            self, 'EC2InstanceRole',
+            assumed_by=aws_iam.ServicePrincipal('ec2.amazonaws.com'),
+            inline_policies=[inline_policy])
 
         print (f'Looking up AMI: {self.ami_name}')
         ami_image = aws_ec2.MachineImage().lookup(name=self.ami_name)
@@ -89,7 +107,8 @@ class DeployEc2Stack(Stack):
             vpc=vpc,
             security_group=sec_grp,
             key_name=self.key_name,
-            user_data=user_data) 
+            user_data=user_data,
+            role=role) 
 
         if not ec2_inst:
             print ('Failed creating ec2 instance')
