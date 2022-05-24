@@ -1,0 +1,6 @@
+.venv
+test.sh
+test.py
+cdk.context.json
+__pycache__
+cdk.out
