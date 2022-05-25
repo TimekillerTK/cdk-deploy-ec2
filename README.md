@@ -1,5 +1,5 @@
 # Deploy EC2 with CDK Python
-Simple AWS CDK Python project to deploy an free tier `t2.micro` EC2 Instance with docker, mostly for myself.
+Simple AWS CDK Python project to deploy an free tier `t2.micro` EC2 Instance with docker + some diagnostic tools, mostly for myself.
 
 To use this, you can set up a shell script file that will export all env vars for you (or use whatever method you want to set the env vars):
 ```sh

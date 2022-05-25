@@ -1,3 +1,3 @@
-yum install docker docker-compose -y
+yum install docker docker-compose nmap -y
 usermod -aG docker ec2-user
 systemctl enable docker && systemctl start docker
