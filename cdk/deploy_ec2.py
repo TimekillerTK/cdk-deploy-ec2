@@ -52,7 +52,7 @@ class DeployEc2Stack(Stack):
         inline_policy = aws_iam.PolicyDocument(
             statements=[aws_iam.PolicyStatement(
                 actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
-                resources=[f"arn:aws:s3:::{self.bucket_name}"]
+                resources=[f"arn:aws:s3:::{self.bucket_name}",f"arn:aws:s3:::{self.bucket_name}/*"]
             )])
         if not inline_policy:
             print('Failed setting inline policy')
