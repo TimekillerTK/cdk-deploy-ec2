@@ -16,6 +16,8 @@ class DeployEc2Stack(Stack):
 
         self.instance_name = 'my-ec2-instance'
         self.instance_type = 't2.micro'
+        self.aws_account   = os.getenv("AWS_ACCOUNT")
+        self.aws_region    = os.getenv("AWS_REGION")
         self.ami_name      = os.getenv("AMI_NAME")
         self.vpc_name      = os.getenv("VPC_ID")
         self.key_name      = os.getenv("KEY_NAME")
@@ -53,6 +55,10 @@ class DeployEc2Stack(Stack):
             statements=[aws_iam.PolicyStatement(
                 actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
                 resources=[f"arn:aws:s3:::{self.bucket_name}",f"arn:aws:s3:::{self.bucket_name}/*"]
+            ),
+            aws_iam.PolicyStatement(
+                actions=["ssm:GetParameter"],
+                resources=[f"arn:aws:ssm:{self.aws_region}:{self.aws_account}:parameter/cdk-deploy-ec2/s3bucketname"]
             )])
         if not inline_policy:
             print('Failed setting inline policy')

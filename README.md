@@ -12,7 +12,6 @@ export KEY_NAME="whatever" # Keypair name which you'll use to connect to the EC2
 export USER_DATA="userdata" # path to userdata
 export BUCKET_NAME="xxxxyyyxxx" # name of S3 bucket EC2 instance will have access to
 ```
-
 By default it will open up a ssh firewall rule to your local public IP Address.
 
 Will spit out IP Address of the instance being created:
@@ -25,5 +24,12 @@ Stack ARN:
 arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT}:stack/DeployEc2Stack/${RANDOMUUID}
 ```
 
+Will also copy all the contents of the specified S3 bucket in `/cdk-deploy-ec2/s3bucketname` to the home folder of `ec2-user`
+
+## Requirements
+Expects an SSM parameter to be set `/cdk-deploy-ec2/s3bucketname` with the same bucket as `BUCKET_NAME` var set.
+
+
+cdk-deploy-ec2/s3bucketname
 # Issues
 * on first connection user doesn't have access to docker - restarting ssh session fixes this
