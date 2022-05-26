@@ -23,9 +23,9 @@ class DeployEc2Stack(Stack):
         self.key_name      = os.getenv("KEY_NAME")
         self.file_path     = os.getenv("USER_DATA")
         self.bucket_name   = os.getenv("BUCKET_NAME")
+        self.allow_ports   = os.getenv("ALLOWED_PORTS")
 
-
-        print(f'Importing User Data...')
+        print(f'Importing commands for EC2 UserData...')
         with open(self.file_path, "r") as file:
             shell_script = file.read()
             
@@ -89,16 +89,26 @@ class DeployEc2Stack(Stack):
             sys.exit(1)
 
         print ('Creating security group')
-        sec_grp= aws_ec2.SecurityGroup(self, 'ec2-sec-grp', vpc=vpc, allow_all_outbound=True)
+        sec_grp = aws_ec2.SecurityGroup(self, 'ec2-sec-grp', vpc=vpc, allow_all_outbound=True)
         if not sec_grp:
             print ('Failed finding security group')
             sys.exit(1)
 
-        print ('Creating inbound firewall rule')
-        sec_grp.add_ingress_rule(
-            peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
-            description='Inbound SSH', 
-            connection=aws_ec2.Port.tcp(22))
+        if not self.allow_ports:
+            print ('[DEFAULT] Creating inbound firewall rule for port 22')
+            sec_grp.add_ingress_rule(
+                peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
+                description=f'Inbound Allow 22', 
+                connection=aws_ec2.Port.tcp(22))
+        else:
+            print ('Creating inbound firewall rules for ports:')
+            for port in self.allow_ports.split(' '):
+                print(f' - {port}')
+                sec_grp.add_ingress_rule(
+                    peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
+                    description=f'Inbound Allow {port}', 
+                    connection=aws_ec2.Port.tcp(int(port)))
+
 
         if not sec_grp:
             print ('Failed creating security group')
