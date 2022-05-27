@@ -14,16 +14,17 @@ class DeployEc2Stack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.instance_name = 'my-ec2-instance'
-        self.instance_type = 't2.micro'
-        self.aws_account   = os.getenv("AWS_ACCOUNT")
-        self.aws_region    = os.getenv("AWS_REGION")
-        self.ami_name      = os.getenv("AMI_NAME")
-        self.vpc_name      = os.getenv("VPC_ID")
-        self.key_name      = os.getenv("KEY_NAME")
-        self.file_path     = os.getenv("USER_DATA")
-        self.bucket_name   = os.getenv("BUCKET_NAME")
-        self.allow_ports   = os.getenv("ALLOWED_PORTS")
+        self.instance_name      = 'my-ec2-instance'
+        self.instance_type      = 't2.micro'
+        self.aws_account        = os.getenv("AWS_ACCOUNT")
+        self.aws_region         = os.getenv("AWS_REGION")
+        self.ami_name           = os.getenv("AMI_NAME")
+        self.vpc_name           = os.getenv("VPC_ID")
+        self.key_name           = os.getenv("KEY_NAME")
+        self.file_path          = os.getenv("USER_DATA")
+        self.bucket_name        = os.getenv("BUCKET_NAME")
+        self.allow_ports        = os.getenv("ALLOW_PORTS")
+        self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
 
         print(f'Importing commands for EC2 UserData...')
         with open(self.file_path, "r") as file:
@@ -94,21 +95,44 @@ class DeployEc2Stack(Stack):
             print ('Failed finding security group')
             sys.exit(1)
 
+
         if not self.allow_ports:
-            print ('[DEFAULT] Creating inbound firewall rule for port 22')
-            sec_grp.add_ingress_rule(
-                peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
-                description=f'Inbound Allow 22', 
-                connection=aws_ec2.Port.tcp(22))
-        else:
-            print ('Creating inbound firewall rules for ports:')
-            for port in self.allow_ports.split(' '):
-                print(f' - {port}')
+            print('[DEFAULT] Creating inbound firewall rule for port 22:')
+            if not self.global_allow_ports:                    
+                print(f' - {local_ip}/32')
                 sec_grp.add_ingress_rule(
                     peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
-                    description=f'Inbound Allow {port}', 
-                    connection=aws_ec2.Port.tcp(int(port)))
-
+                    description=f'Inbound Allow 22', 
+                    connection=aws_ec2.Port.tcp(22))
+            else:
+                print(f' - 0.0.0.0/0')
+                sec_grp.add_ingress_rule(
+                    peer=aws_ec2.Peer.ipv4(f'0.0.0.0/0'), 
+                    description=f'Global Inbound Allow 22', 
+                    connection=aws_ec2.Port.tcp(22))
+        else:
+            print ('Creating inbound firewall rules for ports:')
+            if not self.global_allow_ports:  
+                for port in self.allow_ports.split(' '):
+                    print(f' - {port}')
+                    sec_grp.add_ingress_rule(
+                        peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
+                        description=f'Inbound Allow {port}', 
+                        connection=aws_ec2.Port.tcp(int(port)))
+            else:
+                for port in self.allow_ports.split(' '):
+                    if port in self.global_allow_ports.split(' '):
+                        print(f' - {port}')
+                        sec_grp.add_ingress_rule(
+                            peer=aws_ec2.Peer.ipv4(f'0.0.0.0/0'), 
+                            description=f'Global Inbound Allow {port}', 
+                            connection=aws_ec2.Port.tcp(int(port)))
+                    else:   
+                        print(f' - {port}')
+                        sec_grp.add_ingress_rule(
+                            peer=aws_ec2.Peer.ipv4(f'{local_ip}/32'), 
+                            description=f'Inbound Allow {port}', 
+                            connection=aws_ec2.Port.tcp(int(port)))
 
         if not sec_grp:
             print ('Failed creating security group')
