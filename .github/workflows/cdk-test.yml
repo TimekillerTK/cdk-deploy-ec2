@@ -43,8 +43,8 @@ jobs:
         aws-region: 'us-east-1'
 
     - name: Install dependencies
-      run: yarn
+      run: pip install -r requirements.txt
     
     - name: Synth stack
-      run: yarn cdk synth
+      run: cdk synth
         
