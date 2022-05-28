@@ -43,7 +43,10 @@ jobs:
         aws-region: 'us-east-1'
 
     - name: Install dependencies
-      run: pip install -r requirements.txt
+      run: |
+        pip install -r requirements.txt
+        npm install -g aws-cdk@2.25.0
+        cdk --version
     
     - name: Synth stack
       run: cdk synth
