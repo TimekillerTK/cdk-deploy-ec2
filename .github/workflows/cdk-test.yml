@@ -49,5 +49,5 @@ jobs:
         cdk --version
     
     - name: Synth stack
-      run: cdk synth
+      run: ls -la && cdk synth
         
