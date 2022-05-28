@@ -1,21 +1,3 @@
-# name: GitHub Actions Demo
-# on: [push]
-# jobs:
-#   Explore-GitHub-Actions:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-#       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-#       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-#       - name: Check out repository code
-#         uses: actions/checkout@v3
-#       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-#       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-#       - name: List files in the repository
-#         run: |
-#           ls ${{ github.workspace }}
-#       - run: echo "🍏 This job's status is ${{ job.status }}."
-
 name: AWS CDK Synth
 
 on: [push]
@@ -26,10 +8,9 @@ jobs:
     environment: Development
 
     # Permissions here are required to grant permissions to the GITHUB_TOKEN to use the id-token
+    # for assuming a role in AWS
     permissions:
       id-token: write
-
-
 
     steps:
     - name: Checkout
@@ -63,4 +44,5 @@ jobs:
         KEY_NAME: ${{ secrets.KEY_NAME }}
         USER_DATA: ${{ secrets.USER_DATA }}
         BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+        ALLOW_IP: ${{ secrets.ALLOW_IP }}
         
