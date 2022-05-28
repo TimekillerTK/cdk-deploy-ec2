@@ -23,9 +23,10 @@ on: [push]
 jobs:
   aws-cdk-synth:
     runs-on: ubuntu-latest
-    # Permissions are required to grant permissions to the GITHUB_TOKEN to use the id-token
+    # Permissions here are required to grant permissions to the GITHUB_TOKEN to use the id-token
     permissions:
-      id-token: read
+      id-token: write
+      contents: read
 
     steps:
     - name: Checkout
