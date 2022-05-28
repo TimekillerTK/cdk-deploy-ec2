@@ -27,13 +27,12 @@ class DeployEc2Stack(Stack):
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
 
         print(f'Importing commands for EC2 UserData...')
-        if os.path.isfile(self.file_path):
+        try:
             with open(self.file_path, "r") as file:
                 shell_script = file.read()
-        else:
-            print(f'File in path {self.file_path} does not exist...')
+        except:
+            print(f'File in path {self.file_path} does not exist..?')
             sys.exit(1)
-            
         print(f'USER DATA:\n{shell_script}\n')
 
         user_data = aws_ec2.UserData.for_linux()
