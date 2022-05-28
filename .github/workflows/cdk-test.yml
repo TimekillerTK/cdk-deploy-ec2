@@ -54,13 +54,13 @@ jobs:
     - name: Synth stack
       run: cdk synth
       env:
-        AWS_ACCOUNT: {{ secrets.AWS_ACCOUNT }}
-        AWS_REGION: {{ secrets.AWS_REGION }}
-        VPC_ID: {{ secrets.VPC_ID }}
-        AMI_NAME: {{ secrets.AMI_NAME }}
-        ALLOW_PORTS: {{ secrets.ALLOW_PORTS }}
-        GLOBAL_ALLOW_PORTS: {{ secrets.GLOBAL_ALLOW_PORTS }}
-        KEY_NAME: {{ secrets.KEY_NAME }}
-        USER_DATA: {{ secrets.USER_DATA }}
-        BUCKET_NAME: {{ secrets.BUCKET_NAME }}
+        AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        VPC_ID: ${{ secrets.VPC_ID }}
+        AMI_NAME: ${{ secrets.AMI_NAME }}
+        ALLOW_PORTS: ${{ secrets.ALLOW_PORTS }}
+        GLOBAL_ALLOW_PORTS: ${{ secrets.GLOBAL_ALLOW_PORTS }}
+        KEY_NAME: ${{ secrets.KEY_NAME }}
+        USER_DATA: ${{ secrets.USER_DATA }}
+        BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
         
