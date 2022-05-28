@@ -3,7 +3,7 @@ name: AWS CDK Synth
 on: [push]
 
 jobs:
-  aws-cdk-synth:
+  aws-cdk-deploy:
     runs-on: ubuntu-latest
     environment: Development
 
