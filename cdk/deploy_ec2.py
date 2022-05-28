@@ -25,6 +25,7 @@ class DeployEc2Stack(Stack):
         self.bucket_name        = os.getenv("BUCKET_NAME")
         self.allow_ports        = os.getenv("ALLOW_PORTS")
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
+        self.allow_ip           = os.getenv("ALLOW_IP")
 
         print(f'Importing commands for EC2 UserData...')
         try:
@@ -47,12 +48,13 @@ class DeployEc2Stack(Stack):
             print('Failed getting key pair. Not set?')
             sys.exit(1)
 
-        print(f'Looking up local public IP...')
-        local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
-        print(f'--> Local IP: {local_ip}')
-        if not local_ip:
-            print(f'Failed getting local public IP ')
-            sys.exit(1)
+        # print(f'Looking up local public IP...')
+        # local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
+        # print(f'--> Local IP: {local_ip}')
+        # if not local_ip:
+        #     print(f'Failed getting local public IP ')
+        #     sys.exit(1)
+        local_ip = self.allow_ip
 
         print(f'Creating Inline Policy for access to S3 Bucket')
         inline_policy = aws_iam.PolicyDocument(
