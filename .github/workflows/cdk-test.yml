@@ -32,15 +32,15 @@ jobs:
         node-version: "18"
 
     - name: Configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Install dependencies
-        run: yarn
+      run: yarn
     
     - name: Synth stack
-        run: yarn cdk synth
+      run: yarn cdk synth
         
