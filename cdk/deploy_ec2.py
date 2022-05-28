@@ -50,7 +50,7 @@ class DeployEc2Stack(Stack):
             sys.exit(1)
 
         print(f'CI var is: {self.check_ci}')
-        if not self.check_ci == True:
+        if not self.check_ci == "true":
             print(f'Looking up local public IP...')
             local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
             print(f'--> Local IP: {local_ip}')
