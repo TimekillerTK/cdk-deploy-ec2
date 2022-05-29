@@ -40,7 +40,7 @@ class DeployEc2Stack(Stack):
 
         print(f'Importing commands for EC2 UserData...')
         try:
-            with open(self.file_path, "r") as file:
+            with open(f"userdata/{self.file_path}", "r") as file:
                 shell_script = file.read()
         except:
             print(f'File in path {self.file_path} does not exist..?')

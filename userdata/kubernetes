@@ -1,0 +1,2 @@
+# shebang is added automatically by deploy_ec2.py
+# this will install prerequesites for kubernetes
