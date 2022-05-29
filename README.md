@@ -38,4 +38,7 @@ Will also copy all contents of a specified S3 bucket in `/cdk-deploy-ec2/s3bucke
 * on first connection user doesn't have access to docker - restarting ssh session fixes this (prolly still not ready)
 * when using certbot to use HTTP-01 certificate request, firewall needs to allow http connections from `0.0.0.0/0` otherwise it will fail
 * keypair should be dynamically created if it does not exist - should also not be deleted with stack when stack is deleted.
+  * should only happen when NOT in a CI environment
 * tag all resources in a uniform way
+* make user data completely optional
+* move some code into functions, `deploy_ec2.py` is starting to be long...

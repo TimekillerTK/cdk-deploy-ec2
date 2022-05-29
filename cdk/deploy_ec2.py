@@ -16,7 +16,7 @@ class DeployEc2Stack(Stack):
 
         self.project_name       = os.getenv("PROJECT_NAME")
         self.instance_name      = f"{self.project_name}-instance"
-        self.instance_type      = 't2.micro'
+        self.instance_type      = os.getenv("INSTANCE_TYPE")
         self.aws_account        = os.getenv("AWS_ACCOUNT")
         self.aws_region         = os.getenv("AWS_REGION")
         self.ami_name           = os.getenv("AMI_NAME")
@@ -38,6 +38,7 @@ class DeployEc2Stack(Stack):
             print('Failed getting key pair. Not set?')
             sys.exit(1)
 
+        # imports shell commands from file (for user data)
         try:
             with open(f"{self.file_path}", "r") as file:
                 shell_script = file.read()
@@ -191,7 +192,5 @@ class DeployEc2Stack(Stack):
         if not ec2_inst:
             print ('Failed creating ec2 instance')
             sys.exit(1)
-
-
 
         CfnOutput(self, f"{self.project_name}-instance-pubip", value=ec2_inst.instance_public_ip)
