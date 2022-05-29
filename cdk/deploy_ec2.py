@@ -22,7 +22,7 @@ class DeployEc2Stack(Stack):
         self.ami_name           = os.getenv("AMI_NAME")
         self.vpc_name           = os.getenv("VPC_ID")
         self.key_name           = os.getenv("KEY_NAME")
-        self.file_path          = os.getenv("USER_DATA")
+        self.file_path          = f'userdata/{os.getenv("USER_DATA")}'
         self.bucket_name        = os.getenv("BUCKET_NAME")
         self.allow_ports        = os.getenv("ALLOW_PORTS")
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
@@ -38,20 +38,12 @@ class DeployEc2Stack(Stack):
             print('Failed getting key pair. Not set?')
             sys.exit(1)
 
-        print(f'Importing commands for EC2 UserData...')
         try:
-            with open(f"userdata/{self.file_path}", "r") as file:
+            with open(f"{self.file_path}", "r") as file:
                 shell_script = file.read()
         except:
-            print(f'File in path {self.file_path} does not exist..?')
-            sys.exit(1)
-        print(f'USER DATA:\n{shell_script}\n')
-
-        user_data = aws_ec2.UserData.for_linux()
-        user_data.add_commands(shell_script)
-        print(user_data)
-        if not user_data:
-            print('Failed setting user data...')
+            print('File in path does not exist:')
+            print(f' - {self.file_path}')
             sys.exit(1)
 
         # automatic lookup of public ip if not in CI environment
@@ -66,25 +58,44 @@ class DeployEc2Stack(Stack):
             print(f'Running in CI environment, using ALLOW_IP environment variable...')
             local_ip = self.allow_ip
 
-        print(f'Creating Inline Policy for access to S3 Bucket')
-        inline_policy = aws_iam.PolicyDocument(
-            statements=[aws_iam.PolicyStatement(
+        if self.bucket_name:
+            # if bucket name is set, create PolicyStatements allowing access to S3 bucket & SSM parameter
+            print(f'Creating Inline Policy for access to S3 Bucket')
+            inline_policy = [aws_iam.PolicyDocument(statements=[
+            aws_iam.PolicyStatement(
                 actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
                 resources=[f"arn:aws:s3:::{self.bucket_name}",f"arn:aws:s3:::{self.bucket_name}/*"]
             ),
             aws_iam.PolicyStatement(
                 actions=["ssm:GetParameter"],
                 resources=[f"arn:aws:ssm:{self.aws_region}:{self.aws_account}:parameter/cdk-deploy-ec2/s3bucketname"]
-            )])
-        if not inline_policy:
-            print('Failed setting inline policy')
-            sys.exit(1)
+            )])]
 
+            if not inline_policy:
+                print('Failed setting inline policy')
+                sys.exit(1)
+
+            # if bucketname is set, also insert s3bucket userdata commands
+            try:
+                with open(f"userdata/s3bucket", "r") as file:
+                    s3_userdata = file.read()
+            except:
+                print('File in path does not exist:')
+                print(f' - userdata/s3bucket')
+                sys.exit(1)
+
+            shell_script = shell_script + s3_userdata
+
+        # if bucket name is not set, no statements
+        else:
+            print(f'BUCKET_NAME not set, creating no inline policy for EC2 Instance Role')
+            inline_policy=None
+        
         print(f'Setting up Instance Role...')
         role = aws_iam.Role(
             self, f"{self.project_name}-role",
             assumed_by=aws_iam.ServicePrincipal('ec2.amazonaws.com'),
-            inline_policies=[inline_policy])
+            inline_policies=inline_policy)
 
         print (f'Looking up AMI: {self.ami_name}')
         ami_image = aws_ec2.MachineImage().lookup(name=self.ami_name)
@@ -152,6 +163,18 @@ class DeployEc2Stack(Stack):
         if not sec_grp:
             print ('Failed creating security group')
             sys.exit(1)
+        
+        print(f'Importing commands for EC2 UserData...')
+        user_data = aws_ec2.UserData.for_linux()
+        user_data.add_commands(shell_script)
+        print(user_data)
+        if not user_data:
+            print('Failed setting user data...')
+            sys.exit(1)
+
+        print('\n===================================')
+        print(f'USER DATA:\n{shell_script}\n')
+        print('===================================\n')
 
         print (f'Creating EC2 Instance: {self.instance_name} using {self.instance_type} with ami: {self.ami_name}')
         ec2_inst = aws_ec2.Instance(
@@ -168,5 +191,7 @@ class DeployEc2Stack(Stack):
         if not ec2_inst:
             print ('Failed creating ec2 instance')
             sys.exit(1)
+
+
 
         CfnOutput(self, f"{self.project_name}-instance-pubip", value=ec2_inst.instance_public_ip)

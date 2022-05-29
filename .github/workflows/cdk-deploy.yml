@@ -46,4 +46,3 @@ jobs:
         USER_DATA: ${{ secrets.USER_DATA }}
         BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
         ALLOW_IP: ${{ secrets.ALLOW_IP }}
-        
