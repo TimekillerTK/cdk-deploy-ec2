@@ -6,6 +6,7 @@ jobs:
   aws-cdk-deploy:
     runs-on: ubuntu-latest
     environment: Development
+    if: github.ref == 'refs/heads/master'
 
     # Permissions here are required to grant permissions to the GITHUB_TOKEN to use the id-token
     # for assuming a role in AWS
@@ -34,7 +35,6 @@ jobs:
     
     - name: Deploy Stack
       run: cdk deploy --require-approval never
-      if: github.ref == 'refs/heads/master'
       env:
         AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
