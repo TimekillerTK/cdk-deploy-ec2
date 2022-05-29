@@ -1,4 +1,4 @@
-name: AWS CDK Deploy
+name: Deploy EC2 Instance
 
 on: [push]
 
@@ -34,6 +34,7 @@ jobs:
     
     - name: Deploy Stack
       run: cdk deploy --require-approval never
+      if: github.ref == 'refs/heads/master'
       env:
         AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
