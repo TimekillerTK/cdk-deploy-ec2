@@ -1,9 +1,6 @@
 # shebang is added automatically by deploy_ec2.py
 # this will install prerequesites for kubernetes
-# Documentation:
-# 1. https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ 
-# 2. https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#initializing-your-control-plane-node
-
+# Documentation: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ 
 
 # add sysctl settings to a .conf file for load on boot
 cat <<EOF | tee /etc/sysctl.d/kubernetes.conf
@@ -110,4 +107,23 @@ yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 systemctl enable --now kubelet
 
 # Bootstrap new k8s cluster, must be run as root
-kubeadm init 
+kubeadm init > /home/ec2-user/k8soutput && chown 1000:1000 /home/ec2-user/k8soutput
+
+# .kube/config section should go here (add later!)
+mkdir -p /home/ec2-user/.kube
+cp -i /etc/kubernetes/admin.conf /home/ec2-user/.kube/config
+chown -R 1000:1000 /home/ec2-user/.kube
+
+# # Install a pod network add-on
+# # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network
+# # Here we choose Weave Net: https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
+# # NOTE: THIS HAS A DEPRECATION WARNING!
+SCRIPT_PATH=/home/ec2-user/k8s_networking.sh
+cat <<'EOF' | tee /home/ec2-user/k8s_networking.sh
+#!/bin/bash
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+EOF
+chown ec2-user:ec2-user ${SCRIPT_PATH} && chmod +x ${SCRIPT_PATH}
+su -c "${SCRIPT_PATH}" ec2-user
+
+# THIS NEEDS TO BE TESTED NOW!

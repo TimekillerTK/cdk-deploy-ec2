@@ -8,6 +8,7 @@ export PROJECT_NAME="my-ec2-test" # Name of project, inherited by stack name and
 export AWS_ACCOUNT="123456789" # AWS account where the instance will be deployed
 export AWS_REGION="us-east-1"  # Region where the instance will be deployed
 export VPC_ID="vpc-xxxxxxxxxxxx" # VPC
+export INSTANCE_TYPE="t2.micro" # Instance type
 export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" # Amazon Linux 2 (example)
 export ALLOW_PORTS="22 80 443" # list of inbound allowed ports to be allowed on SG
 export GLOBAL_ALLOW_PORTS="80" # list of inbound ports which should be opened up to 0.0.0.0/0
