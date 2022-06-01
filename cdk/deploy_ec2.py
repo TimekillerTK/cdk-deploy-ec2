@@ -22,12 +22,20 @@ class DeployEc2Stack(Stack):
         self.ami_name           = os.getenv("AMI_NAME")
         self.vpc_name           = os.getenv("VPC_ID")
         self.key_name           = os.getenv("KEY_NAME")
-        self.file_path          = f'userdata/{os.getenv("USER_DATA")}'
+        self.user_data          = f'userdata/{os.getenv("USER_DATA")}'
         self.bucket_name        = os.getenv("BUCKET_NAME")
         self.allow_ports        = os.getenv("ALLOW_PORTS")
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
         self.allow_ip           = os.getenv("ALLOW_IP")
         self.check_ci           = os.getenv("CI")
+
+        if not self.user_data:
+            print('USER_DATA not set, using docker by default.')
+            self.user_data = "docker"
+
+        if not self.instance_type:
+            print('INSTANCE_TYPE not set, using t2.micro by default.')
+            self.instance_type = "t2.micro"
 
         if not self.project_name:
             print('PROJECT_NAME not set, exiting...')
@@ -40,16 +48,16 @@ class DeployEc2Stack(Stack):
 
         # imports shell commands from file (for user data)
         try:
-            with open(f"{self.file_path}", "r") as file:
+            with open(f"{self.user_data}", "r") as file:
                 shell_script = file.read()
         except:
             print('File in path does not exist:')
-            print(f' - {self.file_path}')
+            print(f' - {self.user_data}')
             sys.exit(1)
 
         # automatic lookup of public ip if not in CI environment
         if not self.check_ci == "true":
-            print(f'Not running in CI environment, looking up local public IP...')
+            print(f'Not running in github CI environment, looking up local public IP...')
             local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
             print(f'--> Local IP: {local_ip}')
             if not local_ip:

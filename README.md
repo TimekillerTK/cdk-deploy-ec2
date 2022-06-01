@@ -1,5 +1,31 @@
 # Deploy EC2 with CDK Python
-Simple AWS CDK Python project to deploy an free tier `t2.micro` EC2 Instance with docker + some diagnostic tools, mostly for myself.
+Simple AWS CDK Python project to deploy an EC2 Instance (will deploy a free tier `t2.micro` by default) with the following set up and ready to use:
+* `docker` (plus `docker-compose`)
+* `kubernetes` (using `containerd` & `flannel`)
+
+Plus some diagnostic tools I find useful, such as `nmap`.
+
+Defining `BUCKET_NAME` will set an S3 bucket the EC2 instance has access to. Will also automatically copy data from S3 bucket to EC2 instnace on launch for cheap data persistence.
+
+## Prequisites
+For AWS CDK with Python:
+1. install [node & npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+2. install [aws-cdk](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html): 
+   * `npm install -g aws-cdk`
+3. install [pip & python3](https://realpython.com/installing-python/)
+4. install [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+> Don't forget to set up your [AWS Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) for a target AWS account using aws cli
+
+Afterwards:
+* clone the repository
+* install python requirements
+  * `pip install -r requirements.txt` 
+* set the required environment variables (LINK HERE!)
+* run `cdk deploy`
+
+## How to use
+The application expects a few environment variables to be set (CONTINUE HERE)
 
 To use this, you can set up a shell script file that will export all env vars for you (or use whatever method you want to set the env vars):
 ```sh
