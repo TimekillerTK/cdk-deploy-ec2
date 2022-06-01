@@ -107,23 +107,37 @@ yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 systemctl enable --now kubelet
 
 # Bootstrap new k8s cluster, must be run as root
-kubeadm init > /home/ec2-user/k8soutput && chown 1000:1000 /home/ec2-user/k8soutput
+# NOTE: Flannel requires 10.244.0.0/16 pod network cidr BY DEFAULT
+kubeadm init --pod-network-cidr=10.244.0.0/16 > /home/ec2-user/k8soutput && chown 1000:1000 /home/ec2-user/k8soutput
 
 # .kube/config section should go here (add later!)
 mkdir -p /home/ec2-user/.kube
 cp -i /etc/kubernetes/admin.conf /home/ec2-user/.kube/config
 chown -R 1000:1000 /home/ec2-user/.kube
 
-# # Install a pod network add-on
-# # https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network
-# # Here we choose Weave Net: https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
-# # NOTE: THIS HAS A DEPRECATION WARNING!
-SCRIPT_PATH=/home/ec2-user/k8s_networking.sh
-cat <<'EOF' | tee /home/ec2-user/k8s_networking.sh
-#!/bin/bash
-kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
-EOF
-chown ec2-user:ec2-user ${SCRIPT_PATH} && chmod +x ${SCRIPT_PATH}
-su -c "${SCRIPT_PATH}" ec2-user
+# Install a pod network add-on
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network
+# Here we choose Flannel: https://github.com/flannel-io/flannel#getting-started-on-kubernetes
+# NOTE: Run as a normal user ec2-user
+mkdir -p /opt/bin && \
+    curl -l https://github.com/flannel-io/flannel/releases/download/v0.18.0/flanneld-amd64 -o /opt/bin/flanneld && \
+    chmod +x /opt/bin/flanneld
+runuser -l ec2-user -c "kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
 
-# THIS NEEDS TO BE TESTED NOW!
+#### WARNING: https://github.com/containerd/containerd/issues/6921 Issue with containerd & weave ####
+### DO NOT USE UNTIL FIXED! ###
+# # Here we choose Weave Net: https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
+# # NOTE: Run as a normal user ec2-user
+# SCRIPT_PATH=/home/ec2-user/k8s_networking.sh
+# cat <<'EOF' | tee /home/ec2-user/k8s_networking.sh
+# #!/bin/bash
+# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+# EOF
+# chown ec2-user:ec2-user ${SCRIPT_PATH} && chmod +x ${SCRIPT_PATH}
+# su -c "${SCRIPT_PATH}" ec2-user
+####
+
+# In order to be able to schedule pods on the control-plane / master node
+# NOTE: Run as normal user ec2-user
+runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/control-plane-"
+runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/master-"
