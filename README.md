@@ -134,3 +134,4 @@ export USER_DATA="kubernetes"
 
 # Known Issues
 * when using docker userdata, on first connection user doesn't have access to docker - restarting ssh session fixes this (prolly still not ready)
+* CI/CD pipeline is experimental, don't use!
