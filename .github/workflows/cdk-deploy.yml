@@ -1,3 +1,4 @@
+# This is experimental, don't use!
 name: Deploy EC2 Instance
 
 on: [push]
@@ -6,7 +7,7 @@ jobs:
   aws-cdk-deploy:
     runs-on: ubuntu-latest
     environment: Development
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/cicd'
 
     # Permissions here are required to grant permissions to the GITHUB_TOKEN to use the id-token
     # for assuming a role in AWS
