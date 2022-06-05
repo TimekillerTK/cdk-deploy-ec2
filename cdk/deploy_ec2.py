@@ -15,7 +15,7 @@ class DeployEc2Stack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.project_name       = os.getenv("PROJECT_NAME")
-        self.instance_name      = f"{self.project_name}-instance"
+        self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
         self.aws_account        = os.getenv("AWS_ACCOUNT")
         self.aws_region         = os.getenv("AWS_REGION")
@@ -28,6 +28,10 @@ class DeployEc2Stack(Stack):
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
         self.allow_ip           = os.getenv("ALLOW_IP")
         self.check_ci           = os.getenv("CI")
+
+        if not self.instance_names:
+            print('INSTANCE_NAMES not set, creating 1 EC2 instance by default.')
+            self.instance_names = [f'{self.project_name}-instance']
 
         if not self.user_data:
             print('USER_DATA not set, using docker by default.')
@@ -185,20 +189,26 @@ class DeployEc2Stack(Stack):
         print(f'USER DATA:\n{shell_script}\n')
         print('===================================\n')
 
-        print (f'Creating EC2 Instance: {self.instance_name} using {self.instance_type} with ami: {self.ami_name}')
-        ec2_inst = aws_ec2.Instance(
-            self, self.instance_name, 
-            instance_name=self.instance_name,
-            instance_type=instance_type,
-            machine_image=ami_image,
-            vpc=vpc,
-            security_group=sec_grp,
-            key_name=self.key_name,
-            user_data=user_data,
-            role=role) 
+        print (f'Creating EC2 Instances:')
 
-        if not ec2_inst:
-            print ('Failed creating ec2 instance')
-            sys.exit(1)
+        # will create multiple instances, if names are provided
+        for name in self.instance_names.split(' '):
+            instance_name = f'{self.project_name}-instance-{name}'
+            print(f' - {instance_name} using {self.instance_type} with ami: {self.ami_name}')
+            ec2_inst = aws_ec2.Instance(
+                self, instance_name, 
+                instance_name=instance_name,
+                instance_type=instance_type,
+                machine_image=ami_image,
+                vpc=vpc,
+                security_group=sec_grp,
+                key_name=self.key_name,
+                user_data=user_data,
+                role=role) 
 
-        CfnOutput(self, f"{self.project_name}-instance-pubip", value=ec2_inst.instance_public_ip)
+            if not ec2_inst:
+                print ('Failed creating ec2 instance')
+                sys.exit(1)
+
+            # Export created EC2 instance IP Address as CFN Output!
+            CfnOutput(self, f"{instance_name}-pubip", value=ec2_inst.instance_public_ip)

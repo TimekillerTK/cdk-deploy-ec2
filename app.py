@@ -4,6 +4,8 @@ import sys
 import aws_cdk as cdk
 from cdk.deploy_ec2 import DeployEc2Stack
 
+# Needs to be fixed to deploy more than 1 EC2 instance if we want for testing!
+# Currently BRRRROOOOOOKEEEEEEN
 project_name = os.getenv("PROJECT_NAME")
 if project_name == "":
     print('PROJECT_NAME not set, exiting...')

@@ -22,9 +22,9 @@ sysctl --system
 yum install iproute-tc nmap jq -y
 
 # Download and install containerd 
-TARFILE=containerd-1.6.4-linux-amd64.tar.gz
-wget https://github.com/containerd/containerd/releases/download/v1.6.4/${TARFILE}
-wget https://github.com/containerd/containerd/releases/download/v1.6.4/${TARFILE}.sha256sum
+TARFILE=containerd-1.6.5-linux-amd64.tar.gz
+wget https://github.com/containerd/containerd/releases/download/v1.6.5/${TARFILE}
+wget https://github.com/containerd/containerd/releases/download/v1.6.5/${TARFILE}.sha256sum
 sha256sum -c ${TARFILE}.sha256sum # this needs to be checked later
 tar Cxzvf /usr/local $TARFILE
 
@@ -120,14 +120,14 @@ chown -R 1000:1000 /home/ec2-user/.kube
 # Here we choose Flannel: https://github.com/flannel-io/flannel#getting-started-on-kubernetes
 # NOTE: Run as a normal user ec2-user
 mkdir -p /opt/bin && \
-    curl -l https://github.com/flannel-io/flannel/releases/download/v0.18.0/flanneld-amd64 -o /opt/bin/flanneld && \
+    curl -L https://github.com/flannel-io/flannel/releases/download/v0.18.0/flanneld-amd64 -o /opt/bin/flanneld && \
     chmod +x /opt/bin/flanneld
 runuser -l ec2-user -c "kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
 
 #### WARNING: https://github.com/containerd/containerd/issues/6921 Issue with containerd & weave ####
-### DO NOT USE UNTIL FIXED! ###
-# # Here we choose Weave Net: https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
-# # NOTE: Run as a normal user ec2-user
+### Fixed in version 1.6.5
+# Here we choose Weave Net: https://www.weave.works/docs/net/latest/kubernetes/kube-addon/
+# NOTE: Run as a normal user ec2-user
 # SCRIPT_PATH=/home/ec2-user/k8s_networking.sh
 # cat <<'EOF' | tee /home/ec2-user/k8s_networking.sh
 # #!/bin/bash
@@ -139,5 +139,14 @@ runuser -l ec2-user -c "kubectl apply -f https://raw.githubusercontent.com/flann
 
 # In order to be able to schedule pods on the control-plane / master node
 # NOTE: Run as normal user ec2-user
-runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/control-plane-"
-runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/master-"
+# runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/control-plane-"
+# runuser -l ec2-user -c "kubectl taint nodes --all node-role.kubernetes.io/master-"
+
+# Install an Nginx ingress controller
+# Docs: https://kubernetes.github.io/ingress-nginx/deploy/
+# runuser -l ec2-user -c "kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml"
+
+# Install Helm
+# Source: https://github.com/helm/helm/releases
+# <insert command here>
+
