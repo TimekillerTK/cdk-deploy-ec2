@@ -1,4 +1,7 @@
 - [Deploy EC2 with CDK Python](#deploy-ec2-with-cdk-python)
+  - [UserData](#userdata)
+    - [docker](#docker)
+    - [kubernetes](#kubernetes)
   - [Prequisites](#prequisites)
   - [How to use](#how-to-use)
     - [Example 1](#example-1)
@@ -22,6 +25,54 @@ DeployEc2Stack.MyInstanceIp = xxx.xxx.xxx.xxx
 Stack ARN:
 arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT}:stack/DeployEc2Stack/${RANDOMUUID}
 ```
+## UserData
+There are two kinds of userdata that can be deployed with the EC2 instance in question:
+
+### docker
+Will deploy docker engine & docker compose, ready to use on the EC2 instance.
+
+```
+[ec2-user@ip-172-31-22-63 ~]$ docker container ls
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+```
+
+### kubernetes
+This will deploy a fully functional **single node** kubernetes cluster control plane for testing/playing around. Container engine is `containerd` and networking CNI used is `flannel`.
+
+**Not intended for use with `AWS Elastic Kubernetes Services (EKS)` in any way!**
+
+If you want to deploy pods on the control plane, you'll need to get rid of the taint on the master node by running:
+* `kubectl taint nodes --all node-role.kubernetes.io/control-plane-`
+* `kubectl taint nodes --all node-role.kubernetes.io/master-`
+
+> NOTE: Currently deploying multiple EC2 instances will not join them to the cluster, each one will be it's own individual control plane!
+```sh
+NAMESPACE     NAME                                                        READY   STATUS    RESTARTS   AGE
+kube-system   pod/coredns-6d4b75cb6d-6xlnd                                1/1     Running   0          94s
+kube-system   pod/coredns-6d4b75cb6d-rrcwq                                1/1     Running   0          94s
+kube-system   pod/etcd-ip-172-31-28-175.ec2.internal                      1/1     Running   0          108s
+kube-system   pod/kube-apiserver-ip-172-31-28-175.ec2.internal            1/1     Running   0          108s
+kube-system   pod/kube-controller-manager-ip-172-31-28-175.ec2.internal   1/1     Running   0          108s
+kube-system   pod/kube-flannel-ds-bq9vl                                   1/1     Running   0          94s
+kube-system   pod/kube-proxy-txvwj                                        1/1     Running   0          94s
+kube-system   pod/kube-scheduler-ip-172-31-28-175.ec2.internal            1/1     Running   0          108s
+
+NAMESPACE     NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+default       service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP                  110s
+kube-system   service/kube-dns     ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   108s
+
+NAMESPACE     NAME                             DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/kube-flannel-ds   1         1         1       1            1           <none>                   106s
+kube-system   daemonset.apps/kube-proxy        1         1         1       1            1           kubernetes.io/os=linux   108s
+
+NAMESPACE     NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system   deployment.apps/coredns   2/2     2            2           108s
+
+NAMESPACE     NAME                                 DESIRED   CURRENT   READY   AGE
+kube-system   replicaset.apps/coredns-6d4b75cb6d   2         2         2       94s
+```
+
 
 ## Prequisites
 Install the following required prequisites for AWS CDK:
