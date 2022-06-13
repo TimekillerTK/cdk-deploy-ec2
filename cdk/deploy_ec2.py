@@ -14,6 +14,7 @@ class DeployEc2Stack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # ENV Vars set by user
         self.project_name       = os.getenv("PROJECT_NAME")
         self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
@@ -22,43 +23,50 @@ class DeployEc2Stack(Stack):
         self.ami_name           = os.getenv("AMI_NAME")
         self.vpc_name           = os.getenv("VPC_ID")
         self.key_name           = os.getenv("KEY_NAME")
-        self.user_data          = f'userdata/{os.getenv("USER_DATA")}'
+        self.user_data          = os.getenv("USER_DATA")
         self.bucket_name        = os.getenv("BUCKET_NAME")
         self.allow_ports        = os.getenv("ALLOW_PORTS")
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
         self.allow_ip           = os.getenv("ALLOW_IP")
         self.check_ci           = os.getenv("CI")
 
+        self.spaghetti = kwargs.items()
+        print(self.spaghetti)
+
+        # if not self.project_name:
+        #     print('PROJECT_NAME not set, using cdk-deploy-ec2.')
+        #     self.project_name = "cdk-deploy-ec2"
+
         if not self.instance_names:
             print('INSTANCE_NAMES not set, creating 1 EC2 instance by default.')
             self.instance_names = [f'{self.project_name}-instance']
-
-        if not self.user_data:
-            print('USER_DATA not set, using docker by default.')
-            self.user_data = "docker"
 
         if not self.instance_type:
             print('INSTANCE_TYPE not set, using t2.micro by default.')
             self.instance_type = "t2.micro"
 
-        if not self.project_name:
-            print('PROJECT_NAME not set, exiting...')
-            sys.exit(1)
+        if not self.ami_name:
+            print('AMI_NAME not set, using amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2 by default.')
+            self.ami_name = "amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2"
 
-        print(f'Checking name of key pair...')
         if not self.key_name:
-            print('Failed getting key pair. Not set?')
-            sys.exit(1)
+            # Should just only use session manager, if that is the case
+            print('KEY_NAME not set, session manager access to EC2 instance only.')
+            self.key_name = None
 
         # imports shell commands from file (for user data)
-        try:
-            with open(f"{self.user_data}", "r") as file:
-                shell_script = file.read()
-        except:
-            print('File in path does not exist:')
-            print(f' - {self.user_data}')
-            sys.exit(1)
-
+        if self.user_data:
+            try:
+                with open(f"userdata/{self.user_data}", "r") as file:
+                    shell_script = file.read()
+            except:
+                print('File in path does not exist:')
+                print(f' - userdata/{self.user_data}')
+                sys.exit(1)
+        else:
+            print('USER_DATA not set, using none.')
+            self.user_data = None
+            
         # automatic lookup of public ip if not in CI environment
         if not self.check_ci == "true":
             print(f'Not running in github CI environment, looking up local public IP...')
@@ -109,6 +117,9 @@ class DeployEc2Stack(Stack):
             self, f"{self.project_name}-role",
             assumed_by=aws_iam.ServicePrincipal('ec2.amazonaws.com'),
             inline_policies=inline_policy)
+
+        print('Adding Session Manager permissions to Instance role...')
+        role.add_managed_policy(aws_iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore"))
 
         print (f'Looking up AMI: {self.ami_name}')
         ami_image = aws_ec2.MachineImage().lookup(name=self.ami_name)
