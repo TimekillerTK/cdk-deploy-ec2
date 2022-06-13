@@ -53,6 +53,7 @@ class DeployEc2Stack(Stack):
         # automatic lookup of public ip if not in CI environment
         if not self.check_ci == "true":
             print(f'Not running in github CI environment, looking up local public IP...')
+            #TODO: Add retry, and find fallback in case it doesn't work
             local_ip = (requests.get('http://icanhazip.com')).text.split()[0]
             print(f'--> Local IP: {local_ip}')
             if not local_ip:
