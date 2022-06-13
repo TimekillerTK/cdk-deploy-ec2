@@ -11,35 +11,31 @@ from constructs import Construct
 
 class DeployEc2Stack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, project_name: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # ENV Vars set by user
-        self.project_name       = os.getenv("PROJECT_NAME")
+        self.project_name       = project_name
         self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
-        self.aws_account        = os.getenv("AWS_ACCOUNT")
-        self.aws_region         = os.getenv("AWS_REGION")
         self.ami_name           = os.getenv("AMI_NAME")
         self.vpc_name           = os.getenv("VPC_ID")
         self.key_name           = os.getenv("KEY_NAME")
-        self.user_data          = os.getenv("USER_DATA")
+        self.env_user_data      = os.getenv("USER_DATA")
         self.bucket_name        = os.getenv("BUCKET_NAME")
         self.allow_ports        = os.getenv("ALLOW_PORTS")
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
         self.allow_ip           = os.getenv("ALLOW_IP")
+
+        # Other ENV Vars
+        self.vars = kwargs.items()
+        self.aws_account        = dict(self.vars)['env'].account
+        self.aws_region         = dict(self.vars)['env'].region
         self.check_ci           = os.getenv("CI")
-
-        self.spaghetti = kwargs.items()
-        print(self.spaghetti)
-
-        # if not self.project_name:
-        #     print('PROJECT_NAME not set, using cdk-deploy-ec2.')
-        #     self.project_name = "cdk-deploy-ec2"
 
         if not self.instance_names:
             print('INSTANCE_NAMES not set, creating 1 EC2 instance by default.')
-            self.instance_names = [f'{self.project_name}-instance']
+            self.instance_names = '{self.project_name}-instance'
 
         if not self.instance_type:
             print('INSTANCE_TYPE not set, using t2.micro by default.')
@@ -54,19 +50,6 @@ class DeployEc2Stack(Stack):
             print('KEY_NAME not set, session manager access to EC2 instance only.')
             self.key_name = None
 
-        # imports shell commands from file (for user data)
-        if self.user_data:
-            try:
-                with open(f"userdata/{self.user_data}", "r") as file:
-                    shell_script = file.read()
-            except:
-                print('File in path does not exist:')
-                print(f' - userdata/{self.user_data}')
-                sys.exit(1)
-        else:
-            print('USER_DATA not set, using none.')
-            self.user_data = None
-            
         # automatic lookup of public ip if not in CI environment
         if not self.check_ci == "true":
             print(f'Not running in github CI environment, looking up local public IP...')
@@ -79,38 +62,60 @@ class DeployEc2Stack(Stack):
             print(f'Running in CI environment, using ALLOW_IP environment variable...')
             local_ip = self.allow_ip
 
-        if self.bucket_name:
-            # if bucket name is set, create PolicyStatements allowing access to S3 bucket & SSM parameter
-            print(f'Creating Inline Policy for access to S3 Bucket')
-            inline_policy = [aws_iam.PolicyDocument(statements=[
-            aws_iam.PolicyStatement(
-                actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
-                resources=[f"arn:aws:s3:::{self.bucket_name}",f"arn:aws:s3:::{self.bucket_name}/*"]
-            ),
-            aws_iam.PolicyStatement(
-                actions=["ssm:GetParameter"],
-                resources=[f"arn:aws:ssm:{self.aws_region}:{self.aws_account}:parameter/cdk-deploy-ec2/s3bucketname"]
-            )])]
-
-            if not inline_policy:
-                print('Failed setting inline policy')
-                sys.exit(1)
-
-            # if bucketname is set, also insert s3bucket userdata commands
+        # imports shell commands from file (for user data)
+        if self.env_user_data:
             try:
-                with open(f"userdata/s3bucket", "r") as file:
-                    s3_userdata = file.read()
+                with open(f"userdata/{self.env_user_data}", "r") as file:
+                    shell_script = file.read()
             except:
                 print('File in path does not exist:')
-                print(f' - userdata/s3bucket')
+                print(f' - userdata/{self.env_user_data}')
+                sys.exit(1)
+            
+            if self.bucket_name:
+                # if bucket name is set, create PolicyStatements allowing access to S3 bucket & SSM parameter
+                print(f'Creating Inline Policy for access to S3 Bucket')
+                inline_policy = [aws_iam.PolicyDocument(statements=[
+                aws_iam.PolicyStatement(
+                    actions=["s3:PutObject","s3:GetObjectAcl","s3:GetObject","s3:ListBucket","s3:DeleteObject","s3:PutObjectAcl"],
+                    resources=[f"arn:aws:s3:::{self.bucket_name}",f"arn:aws:s3:::{self.bucket_name}/*"]
+                ),
+                aws_iam.PolicyStatement(
+                    actions=["ssm:GetParameter"],
+                    resources=[f"arn:aws:ssm:{self.aws_region}:{self.aws_account}:parameter/cdk-deploy-ec2/s3bucketname"]
+                )])]
+
+                if not inline_policy:
+                    print('Failed setting inline policy')
+                    sys.exit(1)
+
+                # if bucketname is set, also insert s3bucket userdata commands
+                try:
+                    with open(f"userdata/s3bucket", "r") as file:
+                        s3_userdata = file.read()
+                except:
+                    print('File in path does not exist:')
+                    print(f' - userdata/s3bucket')
+                    sys.exit(1)
+
+                shell_script = shell_script + s3_userdata
+            
+            print(f'Importing commands for EC2 UserData...')
+            user_data = aws_ec2.UserData.for_linux()
+            user_data.add_commands(shell_script)
+            print(user_data)
+            if not user_data:
+                print('Failed setting user data...')
                 sys.exit(1)
 
-            shell_script = shell_script + s3_userdata
+            print('\n===================================')
+            print(f'USER DATA:\n{shell_script}\n')
+            print('===================================\n')
 
-        # if bucket name is not set, no statements
         else:
-            print(f'BUCKET_NAME not set, creating no inline policy for EC2 Instance Role')
-            inline_policy=None
+            print('USER_DATA not set, using none.')
+            inline_policy = None
+            user_data = None
         
         print(f'Setting up Instance Role...')
         role = aws_iam.Role(
@@ -187,18 +192,6 @@ class DeployEc2Stack(Stack):
         if not sec_grp:
             print ('Failed creating security group')
             sys.exit(1)
-        
-        print(f'Importing commands for EC2 UserData...')
-        user_data = aws_ec2.UserData.for_linux()
-        user_data.add_commands(shell_script)
-        print(user_data)
-        if not user_data:
-            print('Failed setting user data...')
-            sys.exit(1)
-
-        print('\n===================================')
-        print(f'USER DATA:\n{shell_script}\n')
-        print('===================================\n')
 
         print (f'Creating EC2 Instances:')
 

@@ -1,5 +1,5 @@
 .venv
-test.*
+test*
 cdk.context.json
 __pycache__
 cdk.out
