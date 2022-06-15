@@ -14,12 +14,17 @@ class DeployEc2Stack(Stack):
     def __init__(self, scope: Construct, construct_id: str, project_name: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # ENV Vars set by user
+        # Required ENV vars set by user
+        self.vars               = kwargs.items()
+        self.aws_account        = dict(self.vars)['env'].account
+        self.aws_region         = dict(self.vars)['env'].region
+        self.vpc_name           = os.getenv("VPC_ID")
+        
+        # Optional ENV Vars set by user
         self.project_name       = project_name
         self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
         self.ami_name           = os.getenv("AMI_NAME")
-        self.vpc_name           = os.getenv("VPC_ID")
         self.key_name           = os.getenv("KEY_NAME")
         self.env_user_data      = os.getenv("USER_DATA")
         self.bucket_name        = os.getenv("BUCKET_NAME")
@@ -27,15 +32,12 @@ class DeployEc2Stack(Stack):
         self.global_allow_ports = os.getenv("GLOBAL_ALLOW_PORTS")
         self.allow_ip           = os.getenv("ALLOW_IP")
 
-        # Other ENV Vars
-        self.vars = kwargs.items()
-        self.aws_account        = dict(self.vars)['env'].account
-        self.aws_region         = dict(self.vars)['env'].region
+        # Other vars
         self.check_ci           = os.getenv("CI")
 
         if not self.instance_names:
             print('INSTANCE_NAMES not set, creating 1 EC2 instance by default.')
-            self.instance_names = '{self.project_name}-instance'
+            self.instance_names = f'{self.project_name}-instance'
 
         if not self.instance_type:
             print('INSTANCE_TYPE not set, using t2.micro by default.')

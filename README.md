@@ -1,22 +1,25 @@
-- [Deploy EC2 with CDK Python](#deploy-ec2-with-cdk-python)
+- [Deploy EC2 with CDK (Python)](#deploy-ec2-with-cdk-python)
   - [UserData](#userdata)
     - [docker](#docker)
     - [kubernetes](#kubernetes)
   - [Prequisites](#prequisites)
   - [How to use](#how-to-use)
+  - [Environment Variables (Required)](#environment-variables-required)
+  - [Environment Variables (Optional)](#environment-variables-optional)
+  - [Setting Environment Variables](#setting-environment-variables)
     - [Example 1](#example-1)
     - [Example 2](#example-2)
     - [Example 3](#example-3)
 - [Known Issues](#known-issues)
 
-# Deploy EC2 with CDK Python
-Simple AWS CDK Python project to deploy EC2 Instance(s) (will deploy a free tier `t2.micro` by default) with the following set up and ready to use:
+# Deploy EC2 with CDK (Python)
+Simple AWS CDK Python project to deploy EC2 Instance(s) (will deploy a free tier `t2.micro` by default). Also can optionally have the following set up and ready to use:
 * `docker` (plus `docker-compose`)
 * `kubernetes` (using `containerd` & `flannel`)
 
 Plus some diagnostic tools I find useful, such as `nmap`. The deployed EC2 instances will also **OPTIONALLY** copy all contents of a specified S3 bucket in SSM parameter `/cdk-deploy-ec2/s3bucketname` to `/home/ec2-user` on the deployed instances.
 
-Once the deployment is finished, it will spit out the IP Addresses of the instances being created:
+Once the deployment is finished, it will spit out the IP Addresses of the instances being created for SSH connections (but Session Manager connections are also available):
 ```sh
 ✨  Deployment time: 34.9s
 
@@ -38,15 +41,16 @@ CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
 ### kubernetes
+> **NOTE: Not intended for use with `AWS Elastic Kubernetes Services (EKS)` in any way!**
+> 
 This will deploy a fully functional **single node** kubernetes cluster control plane for testing/playing around. Container engine is `containerd` and networking CNI used is `flannel`.
 
-**Not intended for use with `AWS Elastic Kubernetes Services (EKS)` in any way!**
 
 If you want to deploy pods on the control plane, you'll need to get rid of the taint on the master node by running:
 * `kubectl taint nodes --all node-role.kubernetes.io/control-plane-`
 * `kubectl taint nodes --all node-role.kubernetes.io/master-`
 
-> NOTE: Currently deploying multiple EC2 instances will not join them to the cluster, each one will be it's own individual control plane!
+> NOTE: Currently deploying multiple EC2 instances will not join them to the cluster, each one will be it's own individual control plane/cluster!
 ```sh
 NAMESPACE     NAME                                                        READY   STATUS    RESTARTS   AGE
 kube-system   pod/coredns-6d4b75cb6d-6xlnd                                1/1     Running   0          94s
@@ -76,7 +80,7 @@ kube-system   replicaset.apps/coredns-6d4b75cb6d   2         2         2       9
 
 ## Prequisites
 Install the following required prequisites for AWS CDK:
-* [Node.js & npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+* [npm & Node.js](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 * [aws-cdk](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
 * [pip & python3](https://realpython.com/installing-python/)
 * [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
@@ -92,46 +96,59 @@ Once you meet the prequisites, to deploy an EC2 instance:
 3. Set the required environment variables (see below)
 4. run `cdk deploy`
 
-These are the following required environment variables:
-* `PROJECT_NAME` - name of the project, resources in the stack will inherit the name
+
+## Environment Variables (Required)
+These are the following **required** environment variables:
 * `AWS_ACCOUNT` - AWS account to deploy EC2 instance(s)
 * `AWS_REGION` - AWS region to deploy EC2 instance(s)
 * `VPC_ID` - VPC to deploy EC2 instance(s)
-* `AMI_NAME` - AMI used by EC2 instance(s)
-* `KEY_NAME` - name of keypair created in your AWS account, used for SSH access to instances
 
+## Environment Variables (Optional)
 Additionally, you can set the following optional environment variables, most of which have defaults - to customize the deployment:
-* `ALLOW_PORTS` (default: `22`) - space delimited list of ports allowed to the EC2 instance.
-  * By default it will open up an inbound ssh (TCP/22) firewall rule, allowing the EC2 instance to be only reachable via your local public IP Address.
-  * Additional inbound SG rules are going to be added if the `ALLOWED_PORTS` environment variable is set with a space delimited ports:
-* `export ALLOWED_PORTS="22 80 443"` (example)
-* `GLOBAL_ALLOW_PORTS` - space delimited list of ports which will be opened up to `0.0.0.0/0`. *By default all ports are allowed only via your public IP*
-* `INSTANCE_TYPE` (default: `t2.micro`) - instance type to deploy (`t2.micro` by default)
-* `INSTANCE_NAMES` - space delimited list of names for EC2 instances. 
-* `USER_DATA` (default: `docker`) - name of user data to apply to EC2 instance. For custom UserData, place file in the `userdata/` directory or use one of the provided ones.
+* `PROJECT_NAME` - name of the project, resources in the stack will inherit the name.
+  * default: `cdk-ec2-deploy`
+* `AMI_NAME` - AMI used by EC2 instance(s)
+  * default: `amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2`
+* `KEY_NAME` - name of keypair created in your AWS account, used for SSH access to instances
+  * default: None
+* `ALLOW_PORTS` - space delimited list of ports allowed to the EC2 instance. By default it will open up an inbound ssh (TCP/22) firewall rule, allowing the EC2 instance to be only reachable *via your local public IP Address*.
+  * default: `22`
+  * example: `ALLOW_PORTS="22 80 443"`
+* `GLOBAL_ALLOW_PORTS` - space delimited list of ports which will be opened up to `0.0.0.0/0`. *By default all ports are allowed only via your local public IP*
+  * default: None
+  * example: `GLOBAL_ALLOW_PORTS="80 443"`
+* `INSTANCE_TYPE` - instance type to deploy.
+  * default: `t2.micro`
+* `INSTANCE_NAMES` - space delimited list of names for EC2 instances. Each name will deploy another EC2 instance.
+  * default: None
+  * example: `INSTANCE_NAMES="instance1 instance2 instance3`
+* `USER_DATA` - name of user data to apply to EC2 instance. To use UserData, place file in the `userdata/` directory or use one of the provided ones.
+  * default: None
+  * example: `USER_DATA="kubernetes"`
 * `BUCKET_NAME` - defining this environment variable will set an S3 bucket the EC2 instance has access to. Will also automatically copy data from S3 bucket to EC2 instnace on launch for cheap data persistence.
+  * default: None
+  > Make sure to set an SSM parameter `/cdk-deploy-ec2/s3bucketname` with the value being the same as the `BUCKET_NAME` environment variable set above!
 
-> Make sure to set an SSM parameter `/cdk-deploy-ec2/s3bucketname` with the value being the same as the `BUCKET_NAME` environment variable set above!
-
-For example, you can set up a shell script file `example.sh` that will export all env vars for you (or use whatever method you want to set the env vars). Then you just need to run:
+## Setting Environment Variables
+To make things easy, you can set up a shell script file `example.sh` that will export all your env vars for you (or use whatever method you want to set the env vars). Then you just need to run:
 * `source ./example.sh`
 * `cdk deploy`
 
 ### Example 1
 Create a `t2.micro` EC2 Instance in the `us-east-1` region with Amazon Linux 2, which allows ports `80` `443` and for `0.0.0.0/0` and allows access from port `22` from your local public IP.
 
-Since `USER_DATA` is not set, the `userdata/docker` userdata will be processed on the EC2 instance
+Since `USER_DATA` is not set, therefore no userdata will be processed on the EC2 instance
 ```sh
 #!/bin/bash
 ## Required Variables
-export PROJECT_NAME="my-ec2-test1" 
 export AWS_ACCOUNT="123456789"
 export AWS_REGION="us-east-1"  
 export VPC_ID="vpc-xxxxxxxxxxxx" 
-export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
-export KEY_NAME="mykeyname"
 
 ## Optional Variables
+export PROJECT_NAME="my-ec2-test1" 
+export KEY_NAME="mykeyname"
+export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
 export ALLOW_PORTS="22 80 443"  
 export GLOBAL_ALLOW_PORTS="80 443" 
 ```
@@ -141,18 +158,19 @@ Create three `t3a.small` EC2 instances in the `eu-west-1` region with Amazon Lin
 
 The instances will be called `instance1`, `instance2` and `instance3`. 
 
-Since `USER_DATA` is not set, the `userdata/docker` userdata will be processed on all 3 EC2 instances
+Since `USER_DATA` is set to `docker`, the `userdata/docker` userdata will be processed on all 3 EC2 instances
 ```sh
 #!/bin/bash
 ## Required Variables
-export PROJECT_NAME="my-ec2-test2" 
 export AWS_ACCOUNT="123456789"
 export AWS_REGION="eu-west-1"  
 export VPC_ID="vpc-xxxxxxxxxxxx" 
-export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
-export KEY_NAME="mykeyname"
 
 ## Optional Variables
+export PROJECT_NAME="my-ec2-test2" 
+export KEY_NAME="mykeyname"
+export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
+export USER_DATA="docker"
 export INSTANCE_TYPE="t3a.small"
 export ALLOW_PORTS="22 80 443 8080"
 export GLOBAL_ALLOW_PORTS="8080"
@@ -169,18 +187,18 @@ Since `BUCKET_NAME` is now set, data from bucket `super-bucket-1234555666` will 
 ```sh
 #!/bin/bash
 ## Required Variables
-export PROJECT_NAME="my-ec2-test3" 
 export AWS_ACCOUNT="123456789"
 export AWS_REGION="eu-west-1"  
 export VPC_ID="vpc-xxxxxxxxxxxx" 
-export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
-export KEY_NAME="mykeyname"
 
 ## Optional Variables
+export PROJECT_NAME="my-ec2-test3" 
+export KEY_NAME="mykeyname"
+export AMI_NAME="amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2" 
+export USER_DATA="kubernetes"
 export INSTANCE_TYPE="t3a.small"
 export INSTANCE_NAMES="instance1"
 export BUCKET_NAME="super-bucket-1234555666"
-export USER_DATA="kubernetes"
 ```
 
 # Known Issues
