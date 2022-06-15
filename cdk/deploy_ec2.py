@@ -68,15 +68,16 @@ class DeployEc2Stack(Stack):
         # imports shell commands from file (for user data)
         if self.env_user_data:
             try:
-                with open(f"userdata/{self.env_user_data}", "r") as file:
+                with open(f"userdata/{self.env_user_data}.sh", "r") as file:
                     shell_script = file.read()
             except:
                 print('File in path does not exist:')
-                print(f' - userdata/{self.env_user_data}')
+                print(f' - userdata/{self.env_user_data}.sh')
                 sys.exit(1)
             
             if self.bucket_name:
                 # if bucket name is set, create PolicyStatements allowing access to S3 bucket & SSM parameter
+                #TODO: s3bucket.sh MUST get region dynamically (!) (instance metadata?)
                 print(f'Creating Inline Policy for access to S3 Bucket')
                 inline_policy = [aws_iam.PolicyDocument(statements=[
                 aws_iam.PolicyStatement(
@@ -94,14 +95,14 @@ class DeployEc2Stack(Stack):
 
                 # if bucketname is set, also insert s3bucket userdata commands
                 try:
-                    with open(f"userdata/s3bucket", "r") as file:
+                    with open(f"userdata/s3bucket.sh", "r") as file:
                         s3_userdata = file.read()
                 except:
                     print('File in path does not exist:')
                     print(f' - userdata/s3bucket')
                     sys.exit(1)
 
-                shell_script = shell_script + s3_userdata
+                shell_script = s3_userdata + shell_script
             
             print(f'Importing commands for EC2 UserData...')
             user_data = aws_ec2.UserData.for_linux()
