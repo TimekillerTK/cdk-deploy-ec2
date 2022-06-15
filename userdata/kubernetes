@@ -2,6 +2,8 @@
 # this will install prerequesites for kubernetes
 # Documentation: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ 
 
+# NOTE: built for AMI: amzn2-ami-kernel-5.10-hvm-2.0.20220426.0-x86_64-gp2
+
 # add sysctl settings to a .conf file for load on boot
 cat <<EOF | tee /etc/sysctl.d/kubernetes.conf
 net.bridge.bridge-nf-call-iptables = 1
