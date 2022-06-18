@@ -7,13 +7,13 @@
 amazon-linux-extras disable php7.2
 amazon-linux-extras enable php7.4
 yum clean metadata
-yum install jq php-cli php-pdo php-fpm php-json php-mysqlnd -y
+yum install php-cli php-pdo php-fpm php-json php-mysqlnd -y
 
 # Install apache & activate
 yum install httpd -y
 systemctl enable --now httpd
 
-# Download and install composer
+# Download and install composer for PHP "package management"
 cd /home/ec2-user
 runuser -l ec2-user -c "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\""
 runuser -l ec2-user -c "php -r \"if (hash_file('sha384', 'composer-setup.php') === '55ce33d7678c5a611085589f1f3ddf8b3c52d662cd01d4ba75c0ee0459970c2200a51f492d557530c71c15d8dba01eae') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;\""

@@ -85,6 +85,8 @@ Install the following required prequisites for AWS CDK:
 * [pip & python3](https://realpython.com/installing-python/)
 * [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 
+For managing this project, you'll also need [poetry](https://github.com/python-poetry/poetry) and probably also [pyenv](https://github.com/pyenv/pyenv) to manage your environments.
+
 > Don't forget to set up your [AWS Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) for a target AWS account using aws cli!
 
 ## How to use
