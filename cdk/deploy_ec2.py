@@ -11,7 +11,7 @@ from constructs import Construct
 
 class DeployEc2Stack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, project_name: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, project_name: str, vpc_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Required ENV vars set by user
@@ -22,6 +22,9 @@ class DeployEc2Stack(Stack):
         
         # Optional ENV Vars set by user
         self.project_name       = project_name
+        self.vpc_name           = vpc_id
+
+        # Optional ENV Vars set by user
         self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
         self.ami_name           = os.getenv("AMI_NAME")
@@ -50,7 +53,7 @@ class DeployEc2Stack(Stack):
         if not self.key_name:
             # Should just only use session manager, if that is the case
             print('KEY_NAME not set, session manager access to EC2 instance only.')
-            self.key_name = None
+            self.key_name = None    
 
         # automatic lookup of public ip if not in CI environment
         if not self.check_ci == "true":
@@ -142,7 +145,8 @@ class DeployEc2Stack(Stack):
             print ('Failed finding instance')
             sys.exit(1)
 
-        print (f'Using VPC: {self.vpc_name}')
+        #TODO: Will return None if ENV VAR isn't set, needs to be fixed
+        print(f'Using VPC: {self.vpc_name}')
         vpc = aws_ec2.Vpc.from_lookup(self, 'vpc', vpc_id=self.vpc_name)
         if not vpc:
             print ('Failed finding VPC')
@@ -154,8 +158,8 @@ class DeployEc2Stack(Stack):
             print ('Failed finding security group')
             sys.exit(1)
 
-
         if not self.allow_ports:
+            #TODO: This default should not happen if we don't have a provided keypair name
             print('[DEFAULT] Creating inbound firewall rule for port 22:')
             if not self.global_allow_ports:                    
                 print(f' - {local_ip}/32')
@@ -220,3 +224,5 @@ class DeployEc2Stack(Stack):
 
             # Export created EC2 instance IP Address as CFN Output!
             CfnOutput(self, f"{instance_name}-pubip", value=ec2_inst.instance_public_ip)
+            
+            #TODO: Should output instance id for starting session manager!
