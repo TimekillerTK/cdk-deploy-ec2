@@ -1,5 +1,0 @@
-
-# copies contents of S3 bucket & puts bucket name as an environment variable
-BUCKET_NAME=$(aws ssm get-parameter --name /cdk-deploy-ec2/s3bucketname --region us-east-1 | jq -r '.Parameter.Value')
-echo "export BUCKET_NAME=${BUCKET_NAME}" >> /home/ec2-user/.bashrc 
-mkdir /home/ec2-user/docker && aws s3 cp --recursive s3://${BUCKET_NAME} /home/ec2-user/docker && chown -R ec2-user:ec2-user /home/ec2-user/*

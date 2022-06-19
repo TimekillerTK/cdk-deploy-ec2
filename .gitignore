@@ -1,4 +1,4 @@
-.venv
+.python-version
 test*
 cdk.context.json
 __pycache__

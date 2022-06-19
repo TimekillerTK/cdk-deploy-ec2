@@ -11,7 +11,7 @@ from constructs import Construct
 
 class DeployEc2Stack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, project_name: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, project_name: str, vpc_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Required ENV vars set by user
@@ -22,6 +22,9 @@ class DeployEc2Stack(Stack):
         
         # Optional ENV Vars set by user
         self.project_name       = project_name
+        self.vpc_name           = vpc_id
+
+        # Optional ENV Vars set by user
         self.instance_names     = os.getenv("INSTANCE_NAMES")
         self.instance_type      = os.getenv("INSTANCE_TYPE")
         self.ami_name           = os.getenv("AMI_NAME")
@@ -37,7 +40,7 @@ class DeployEc2Stack(Stack):
 
         if not self.instance_names:
             print('INSTANCE_NAMES not set, creating 1 EC2 instance by default.')
-            self.instance_names = f'{self.project_name}-instance'
+            self.instance_names = f'{self.project_name}'
 
         if not self.instance_type:
             print('INSTANCE_TYPE not set, using t2.micro by default.')
@@ -68,15 +71,16 @@ class DeployEc2Stack(Stack):
         # imports shell commands from file (for user data)
         if self.env_user_data:
             try:
-                with open(f"userdata/{self.env_user_data}", "r") as file:
+                with open(f"userdata/{self.env_user_data}.sh", "r") as file:
                     shell_script = file.read()
             except:
                 print('File in path does not exist:')
-                print(f' - userdata/{self.env_user_data}')
+                print(f' - userdata/{self.env_user_data}.sh')
                 sys.exit(1)
             
             if self.bucket_name:
                 # if bucket name is set, create PolicyStatements allowing access to S3 bucket & SSM parameter
+                #TODO: s3bucket.sh MUST get region dynamically (!) (instance metadata?)
                 print(f'Creating Inline Policy for access to S3 Bucket')
                 inline_policy = [aws_iam.PolicyDocument(statements=[
                 aws_iam.PolicyStatement(
@@ -94,14 +98,17 @@ class DeployEc2Stack(Stack):
 
                 # if bucketname is set, also insert s3bucket userdata commands
                 try:
-                    with open(f"userdata/s3bucket", "r") as file:
+                    with open(f"userdata/s3bucket.sh", "r") as file:
                         s3_userdata = file.read()
                 except:
                     print('File in path does not exist:')
                     print(f' - userdata/s3bucket')
                     sys.exit(1)
 
-                shell_script = shell_script + s3_userdata
+                shell_script = s3_userdata + shell_script
+            # Runs in case userdata is set, but bucket name is not
+            else:
+                inline_policy = None
             
             print(f'Importing commands for EC2 UserData...')
             user_data = aws_ec2.UserData.for_linux()
@@ -141,7 +148,8 @@ class DeployEc2Stack(Stack):
             print ('Failed finding instance')
             sys.exit(1)
 
-        print (f'Using VPC: {self.vpc_name}')
+        #TODO: Will return None if ENV VAR isn't set, needs to be fixed
+        print(f'Using VPC: {self.vpc_name}')
         vpc = aws_ec2.Vpc.from_lookup(self, 'vpc', vpc_id=self.vpc_name)
         if not vpc:
             print ('Failed finding VPC')
@@ -153,8 +161,8 @@ class DeployEc2Stack(Stack):
             print ('Failed finding security group')
             sys.exit(1)
 
-
         if not self.allow_ports:
+            #TODO: This default should not happen if we don't have a provided keypair name
             print('[DEFAULT] Creating inbound firewall rule for port 22:')
             if not self.global_allow_ports:                    
                 print(f' - {local_ip}/32')
@@ -200,10 +208,10 @@ class DeployEc2Stack(Stack):
 
         # will create multiple instances, if names are provided
         for name in self.instance_names.split(' '):
-            instance_name = f'{self.project_name}-instance-{name}'
+            instance_name = f'{name}'
             print(f' - {instance_name} using {self.instance_type} with ami: {self.ami_name}')
             ec2_inst = aws_ec2.Instance(
-                self, instance_name, 
+                self, instance_name,
                 instance_name=instance_name,
                 instance_type=instance_type,
                 machine_image=ami_image,
@@ -214,8 +222,11 @@ class DeployEc2Stack(Stack):
                 role=role) 
 
             if not ec2_inst:
-                print ('Failed creating ec2 instance')
+                print ('ERROR: Failed creating ec2 instance')
                 sys.exit(1)
 
-            # Export created EC2 instance IP Address as CFN Output!
+            #TODO: Should return a nice, user friendly command in the terminal like:
+            #  - aws ssm start-session --target instance-id-from-cfnoutput
+            # Export created EC2 instance IP Address & Instance ID as CFN Output!
             CfnOutput(self, f"{instance_name}-pubip", value=ec2_inst.instance_public_ip)
+            CfnOutput(self, f"{instance_name}-id", value=ec2_inst.instance_id)
