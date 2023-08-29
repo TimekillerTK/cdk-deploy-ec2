@@ -3,3 +3,15 @@ test*
 cdk.context.json
 __pycache__
 cdk.out
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.lock
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+

@@ -1,17 +1,62 @@
 [tool.poetry]
 name = "cdk-deploy-ec2"
-version = "0.1.0"
+version = "0.1.1"
 description = "Deploy EC2 instances using AWS CDK (Python)"
 authors = ["TimekillerTK <erwartungen@protonmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-aws-cdk-lib = "2.25.0"
-constructs = ">=10.0.0,<11.0.0"
+aws-cdk-lib = "2.92.0"
 requests = "2.27.1"
-
-[tool.poetry.dev-dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "venv/",
+    ".venv/"
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+# E & F - defaults
+# W     - optional warnings (for example trailing whitespace)
+# C90   - code complexity
+# ANN   - enforce strict type annotation
+select = ["E", "F", "W", "C90", "ANN"]
+line-length = 100
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    ".venv",
+]
