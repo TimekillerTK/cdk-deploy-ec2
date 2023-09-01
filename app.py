@@ -1,43 +1,49 @@
 #!/usr/bin/env python3
-import os
 
 import aws_cdk as cdk
 
-from cdk.deploy_ec2 import DeployEc2Stack
-
-# try:
-os.environ["apggggg"]
-project_name_env = os.getenv("PROJECT_NAME")
-if not project_name_env:
-    project_name = ("PROJECT_NAME", "cdk-deploy-ec2")
-else:
-    project_name = ("PROJECT_NAME", project_name_env)
+from cdk.classes import EC2OS, EC2Instance, WindowsEC2Instance, LinuxEC2Instance
+from cdk.deploy_ec2linux import DeployEc2LinuxStack
+from cdk.deploy_ec2windows import DeployEc2WindowsStack
+from cdk.functions import get_env_vars
 
 # required environment variables
-vpc_id = ("VPC_ID", os.getenv("VPC_ID"))
-aws_region = ("AWS_REGION", os.getenv("AWS_REGION"))
-aws_account = ("AWS_ACCOUNT", os.getenv("AWS_ACCOUNT"))
-
-required_variables = [aws_account, aws_region, vpc_id]
-
-missing_vars = []
-for var in required_variables:
-    if not var[1]:
-        missing_vars.append(var)
-
-
-if not len(missing_vars) == 0:
-    print("ERROR: Missing required environment variables:")
-    for var in missing_vars:
-        print(f" - {var[0]}")
-    raise SystemExit(1)
-
-
-stack_name = f"{project_name[1]}-stack"
-
-cdk_env = cdk.Environment(account=aws_account[1], region=aws_region[1])
+env_vars = get_env_vars()
 
 app = cdk.App()
-DeployEc2Stack(app, stack_name, env=cdk_env, project_name=project_name[1], vpc_id=vpc_id[1])
+
+if env_vars.ec2_os == EC2OS.LINUX:
+    stack_name = f"{env_vars.project_name}-linux-stack"
+    ec2_data = EC2Instance(
+        os_type=LinuxEC2Instance(),
+        key_name=env_vars.key_name,
+        vpc_id=env_vars.vpc_id
+    )
+
+    DeployEc2LinuxStack(
+        app,
+        stack_name,
+        env=cdk.Environment(account=env_vars.aws_account, region=env_vars.aws_region),
+        project_name=env_vars.project_name,
+        vpc_id=env_vars.vpc_id,
+        termination_protection=True,
+    )
+
+
+elif env_vars.ec2_os == EC2OS.WINDOWS:
+    stack_name = f"{env_vars.project_name}-windows-stack"
+    ec2_data = EC2Instance(
+        os_type=WindowsEC2Instance(), 
+        key_name=env_vars.key_name, 
+        vpc_id=env_vars.vpc_id
+    )
+
+    DeployEc2WindowsStack(
+        app,
+        stack_name,
+        env=cdk.Environment(account=env_vars.aws_account, region=env_vars.aws_region),
+        ec2_data=ec2_data,
+    )
+
 
 app.synth()

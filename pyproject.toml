@@ -6,8 +6,9 @@ authors = ["TimekillerTK <erwartungen@protonmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-aws-cdk-lib = "2.92.0"
-requests = "2.27.1"
+aws-cdk-lib = "^2.93.0"
+requests = "^2.27.1"
+urllib3 = "^2.0.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

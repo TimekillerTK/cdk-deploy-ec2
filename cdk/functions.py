@@ -1,35 +1,40 @@
+from os import environ, getenv
+
+from urllib3 import PoolManager
+
+from cdk.classes import EC2OS, EnvVars
 
 
+def get_env_vars() -> EnvVars:
+    try:
+        vpc_id = environ["VPC_ID"]
+        aws_region = environ["AWS_REGION"]
+        aws_account = environ["AWS_ACCOUNT"]
 
-#TODO: Some testing for future functionality - ignore for now
-# import pysshconfig as psc
+    except KeyError as err:
+        print(f"Environment Variable missing:: {err}")
+        raise SystemExit(1) from err
 
-# import os
+    env_vars = EnvVars(
+        vpc_id=vpc_id,
+        aws_region=aws_region,
+        aws_account=aws_account,
+        key_name=getenv("KEY_NAME"),
+    )
 
-# def ssh_config(profile, host, user, identity_file, port='22'):
+    project_name = getenv("PROJECT_NAME")
+    ec2_os = getenv("EC2_OS")
 
-#     host_template = f"""
-# Host {profile}
-#     HostName {host}
-#     User {user}
-#     Port {port}
-#     IdentityFile {identity_file}
-#     """
+    if project_name:
+        env_vars.project_name = project_name
+    if ec2_os:
+        env_vars.ec2_os = EC2OS(ec2_os.upper())
 
-#     # if os.path.exists(f"{os.getenv('HOME')}/.ssh/config"):
-#     #     # check for position in ssh file and edit shit (update hostname )
-#     #     pass
-#     # else:
-#     #     print("no")
+    return env_vars
 
-#     # print(host_template)
-#     with open(os.path.expanduser('~/.ssh/config')) as file:
-#         ssh_config = psc.load(file)
-    
-#     print(ssh_config)
 
-# def main():
-#     ssh_config("blabla", "1.2.3.4", "MEEEE", "~/.ssh/something.pen")
-
-# if __name__ == "__main__":
-#     main()
+def get_local_ip() -> str:
+    http = PoolManager()
+    response = http.request("GET", "http://icanhazip.com")
+    print(response)
+    return response.data.decode("utf-8").split()[0]
